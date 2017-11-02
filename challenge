@@ -1,0 +1,18 @@
+Objectifs : 
+
+- Être capable de prédire le score d'un match, ou la prédiction (obviously) plus facile du résultat (V/N/D)
+- Pouvoir attribuer un score de performance à un joueur/une équipe
+
+
+Tests faciles :
+
+- Classifieur (si configuration N/V/D) ou régresseur (score) sur un ensemble de features (renormalisés): position dans le championnat, match àl'exterieur/domicile, nombres de buts (mis/pris) par match, nombre de cartons ?
+
+
+Poursuite :
+
+- Introduire information d'équipe (pas le même match si PSG/OM ou Lorient/Lens) au delà de la simple position dans le championnat
+
+- Information des joueurs 
+
+- Fatigue de l'équipe ou turnover via temps depuis le dernier match ?
