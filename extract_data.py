@@ -16,7 +16,7 @@ champs = [d[0] for d in descr]
 # print(champs) # si tu veux voir sur quoi on peut tabuler
 
 rows = c.fetchall()
-csvWriter = csv.writer(open("table.csv", "w"))
-csv.writerow(champs) #adapter si les champs on été réduits
-csv.writerows(rows)
+csvWriter = csv.writer(open("test.csv", "w"))
+csvWriter.writerow(champs) #adapter si les champs on été réduits
+csvWriter.writerows(rows)
 
