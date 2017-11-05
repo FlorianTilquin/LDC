@@ -6,7 +6,13 @@ Objectifs :
 
 Tests faciles :
 
+- Mesurer indépendamment :
+  -- pV,pN,pD pour équipe hote
+  -- pV,pN,pD pour équipe la mieux classée au moment du match
+- Mesurer proba conditionnelle : pV,pN,pD pour équipe la mieux classée au moment du match sachant dom/ext
+
 - Classifieur (si configuration N/V/D) ou régresseur (score) sur un ensemble de features (renormalisés): position dans le championnat, match àl'exterieur/domicile, nombres de buts (mis/pris) par match, nombre de cartons ?
+
 
 
 Poursuite :
