@@ -15,7 +15,7 @@ Tests faciles :
 
 - Classifieur (si configuration N/V/D) ou régresseur (score) sur un ensemble de features (renormalisés): position dans le championnat, match àl'exterieur/domicile, nombres de buts (mis/pris) par match, nombre de cartons ?
 
-
+- Tester méthodes de graphes sur le graphe mis à jour /journée des résultats de rencontres entre équipes (graph flow, pageRank, laplacian -> DiffusionMaps)
 
 Poursuite :
 
