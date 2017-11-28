@@ -10,9 +10,12 @@ import pandas as pd
 from players_features import get_team_feat
 
 con = lite.connect('database.sqlite')
-df = pd.read_sql_query('select * from match where league_id = 4769', con)
+df = pd.read_sql_query('select * from match where league_id = 4735', con)
 df.sort_values(by='date', inplace=True)
 df.reset_index(inplace=True)
+
+Score = df.loc[:,'home_team_goal':'away_team_goal'].as_matrix()
+np.save('Score.npy',Score)
 
 teams = np.unique(df.home_team_api_id).tolist()
 n_team = len(teams)
@@ -24,8 +27,8 @@ n_ft = len(team_ft)
 Team_ft = np.zeros((n_date, n_team, n_ft))
 MEANED = True  # False va produire des erreurs à cause des Nan, à moins qu'on considère un algo qui
 # gère les missings values, genre EM
-Match_ft = np.zeros((3040, 2 * (n_ft + 5 + 28 * (11 - 10 * MEANED))))
-BM = np.load('Probas_BM.npy')
+Match_ft = np.zeros((len(df), 2 * (n_ft + 5 + 28 * (11 - 10 * MEANED))))
+# BM = np.load('Probas_BM.npy')
 # Remplissage de la matrice de ft. par equipe et par date unique
 # Match_ft : [home_ft,away_ft,BM_ft]
 
@@ -43,7 +46,7 @@ def id_ft(ft):
     return team_ft.index(ft)
 
 
-for i in range(3040):
+for i in range(len(df)):
     date = dates.index(df.date[i])
     print("features for day ", df.date[i])
     home_team = teams.index(df.home_team_api_id[i])
@@ -99,8 +102,8 @@ for i in range(3040):
     player_list_id = df.loc[i, 'home_player_1':'away_player_11'].as_matrix()
     ht_feat = get_team_feat(player_list_id[:11], pd.Series(df.date[i]), MEANED)
     at_feat = get_team_feat(player_list_id[11:], pd.Series(df.date[i]), MEANED)
-    Match_ft[2 * n_ft:2 * n_ft + 5 + 28 * (11 - 10 * MEANED)] = ht_feat
-    Match_ft[2 * n_ft + 5 + 28 * (11 - 10 * MEANED):2 *
+    Match_ft[i,2 * n_ft:2 * n_ft + 5 + 28 * (11 - 10 * MEANED)] = ht_feat
+    Match_ft[i,2 * n_ft + 5 + 28 * (11 - 10 * MEANED):2 *
              (n_ft + 5 + 28 * (11 - 10 * MEANED))] = at_feat
 np.save('Team_features.npy', Team_ft)
 np.save('Match_features.npy', Match_ft)
