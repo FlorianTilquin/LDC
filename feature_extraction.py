@@ -10,7 +10,8 @@ import pandas as pd
 from players_features import get_team_feat
 
 con = lite.connect('database.sqlite')
-df = pd.read_sql_query('select * from match where league_id = 4769', con)
+df = pd.read_sql_query('select * from match', con)  # where league_id = 4769 for L1
+print(len(df))
 df.sort_values(by='date', inplace=True)
 df.reset_index(inplace=True)
 
@@ -25,10 +26,10 @@ n_date = len(dates)
 team_ft = ['gfh', 'gah', 'n_h', 'gfa', 'gaa', 'n_a', 'm_pt']
 n_ft = len(team_ft)
 Team_ft = np.zeros((n_date, n_team, n_ft))
-MEANED = False  # False va produire des erreurs à cause des Nan, à moins qu'on considère un algo
+MEANED = True   # False va produire des erreurs à cause des Nan, à moins qu'on considère un algo
 # qui gère les missings values, genre EM
 
-Match_ft = np.zeros((len(df), 2 * (n_ft + 5 + 28 * (11 - 10 * MEANED))))
+Match_ft = np.zeros((len(df), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED))))
 # BM = np.load('Probas_BM.npy')
 # Remplissage de la matrice de ft. par equipe et par date unique
 # Match_ft : [home_ft,away_ft,BM_ft]
@@ -94,18 +95,16 @@ for i in range(len(df)):
     # Match ft. filling
     if date > 0:
         Match_ft[i, :n_ft] = Team_ft[date - 1, home_team, :]
-        if i % 380 == 1:
-            print('b', np.sum(Team_ft[date - 1, home_team, :]))
         Match_ft[i, n_ft:2 * n_ft] = Team_ft[date - 1, away_team, :]
         # Match_ft[i, 2 * n_ft:] = BM[i, ...].reshape(1, -1)
 
-    #  Add players features (33 per player, thus 5+28*11 if MEANED=False else 33) to the list
+    #  Add players features (33 per player, thus 5+28*10 if MEANED=False else 33) to the list
     player_list_id = df.loc[i, 'home_player_1':'away_player_11'].as_matrix()
     ht_feat = get_team_feat(player_list_id[:11], pd.Series(df.date[i]), MEANED)
     at_feat = get_team_feat(player_list_id[11:], pd.Series(df.date[i]), MEANED)
-    Match_ft[i, 2 * n_ft:2 * n_ft + 5 + 28 * (11 - 10 * MEANED)] = ht_feat
-    Match_ft[i, 2 * n_ft + 5 + 28 * (11 - 10 * MEANED):2 *
-             (n_ft + 5 + 28 * (11 - 10 * MEANED))] = at_feat
+    Match_ft[i, 2 * n_ft:2 * n_ft + 5 + 28 * (10 - 9 * MEANED)] = ht_feat
+    Match_ft[i, 2 * n_ft + 5 + 28 * (10 - 9 * MEANED):2 *
+             (n_ft + 5 + 28 * (10 - 9 * MEANED))] = at_feat
 np.save('Team_features.npy', Team_ft)
-print(Match_ft)
+print(Match_ft.shape)
 np.save('Match_features.npy', Match_ft)
