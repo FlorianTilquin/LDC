@@ -11,6 +11,8 @@ from sklearn.preprocessing import LabelEncoder
 from aec import create_model as CM
 
 X, y = np.load('wdwf.npy'), np.load('labels0.npy')
+X = X - np.mean(X, 0)[None, :]
+X = X / np.std(X, 0)[None, :]
 encoder = LabelEncoder()
 encoder.fit(y)
 encoded_Y = encoder.transform(y)
@@ -22,5 +24,5 @@ kfold = KFold(n_splits=10, shuffle=True)
 dummy_y.shape
 # results = cross_val_score(estimator, X, dummy_y, cv=kfold)
 X_train, X_test, Y_train, Y_test = train_test_split(X, y, test_size=0.33)
-estimator.fit(X, y)
+estimator.fit(X_train, Y_train)
 predictions = estimator.predict(X_test)
