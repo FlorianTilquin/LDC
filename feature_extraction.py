@@ -30,6 +30,10 @@ MEANED = True   # False va produire des erreurs à cause des Nan, à moins qu'on
 # qui gère les missings values, genre EM
 
 Match_ft = np.zeros((len(df), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED))))
+BM = df.loc[:, 'B365H':'BSA'].as_matrix()
+BM.shape
+BM = BM.reshape(-1, 3, 10)
+BM[52]
 # BM = np.load('Probas_BM.npy')
 # Remplissage de la matrice de ft. par equipe et par date unique
 # Match_ft : [home_ft,away_ft,BM_ft]
@@ -96,7 +100,7 @@ for i in range(len(df)):
     if date > 0:
         Match_ft[i, :n_ft] = Team_ft[date - 1, home_team, :]
         Match_ft[i, n_ft:2 * n_ft] = Team_ft[date - 1, away_team, :]
-        # Match_ft[i, 2 * n_ft:] = BM[i, ...].reshape(1, -1)
+        Match_ft[i, 2 * n_ft:] = BM[i, ...].reshape(1, -1)
 
     #  Add players features (33 per player, thus 5+28*10 if MEANED=False else 33) to the list
     player_list_id = df.loc[i, 'home_player_1':'away_player_11'].as_matrix()

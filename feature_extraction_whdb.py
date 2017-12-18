@@ -17,7 +17,7 @@ leagues = np.unique(League.as_matrix())
 n_league = len(leagues)
 dfleague = df.groupby('league_id')
 
-MEANED = True   # False va produire des erreurs à cause des Nan, à moins qu'on considère un algo
+MEANED = False  # False va produire des erreurs à cause des Nan, à moins qu'on considère un algo
 # qui gère les missings values, genre EM
 
 
@@ -42,6 +42,9 @@ for league in leagues:
     dfl.reset_index(inplace=True)
 
     Score[str(league)] = dfl.loc[:, 'home_team_goal':'away_team_goal'].as_matrix()
+    BM = dfl.loc[:, 'B365H':'BSA'].as_matrix()
+    BM.shape
+    BM = BM.reshape(-1, 10, 3)
 
     teams = np.unique(dfl.home_team_api_id).tolist()
     n_team = len(teams)
@@ -53,7 +56,7 @@ for league in leagues:
     team_ft = ['gfh', 'gah', 'n_h', 'gfa', 'gaa', 'n_a', 'm_pt']
     n_ft = len(team_ft)
     Team_ft = np.zeros((n_date, n_team, n_ft))
-    Match_ft = np.zeros((len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED))))
+    Match_ft = np.zeros((len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED)) + 30))
 
     prev_seas = dfl.season[0]
     k = 0
@@ -119,10 +122,16 @@ for league in leagues:
         Match_ft[i, 2 * n_ft:2 * n_ft + 5 + 28 * (10 - 9 * MEANED)] = ht_feat
         Match_ft[i, 2 * n_ft + 5 + 28 * (10 - 9 * MEANED):2 *
                  (n_ft + 5 + 28 * (10 - 9 * MEANED))] = at_feat
+
+        #  Add Bookmaker features
+        bm = BM[i, ...]
+        bm[np.any(np.isnan(bm), 1), :] = 1 / np.array([0.4587, 0.2539, 0.2874])
+        Match_ft[i, -30:] = bm.reshape(1, -1)
+
     M_ft[str(league)] = Match_ft
 
-pkl.dump(M_ft,open('M_ft.p','wb'))
-pkl.dump(Score,open('Score.p','wb'))
+pkl.dump(M_ft, open('M_ft.p', 'wb'))
+pkl.dump(Score, open('Score.p', 'wb'))
 # np.save('Score.npy', Score)
 # np.save('Team_features.npy', Team_ft)
 # print(Match_ft.shape)
