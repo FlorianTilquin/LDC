@@ -3,11 +3,13 @@
 
 
 import numpy as np
-
 import pandas as pd
+import sqlite3 as lite
 
-players = pd.read_csv('players.csv')
 
+con = lite.connect('database.sqlite')
+players = pd.read_sql_query('select * from Player_attributes', con)
+#  players = pd.read_csv('players.csv')
 
 def parse_date(date):
     return pd.to_numeric(pd.to_datetime(date)).as_matrix()
@@ -22,6 +24,7 @@ def get_player_feat(player_id, date):
         play_date = parse_date(player.date)
         d0 = np.argmin(np.abs(date - play_date))
         play_feat = player.iloc[d0]
+        print(play_feat.shape)
         return play_feat[10:].as_matrix().reshape(1, -1).astype(float)
 
 
