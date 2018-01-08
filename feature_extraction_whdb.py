@@ -41,7 +41,8 @@ for league in leagues:
     dfl.sort_values(by='date', inplace=True)
     dfl.reset_index(inplace=True)
 
-    Score[str(league)] = dfl.loc[:, 'home_team_goal':'away_team_goal'].as_matrix()
+    Score[str(league)] = dfl.loc[:,
+                                 'home_team_goal':'away_team_goal'].as_matrix()
     BM = dfl.loc[:, 'B365H':'BSA'].as_matrix()
     BM.shape
     BM = BM.reshape(-1, 10, 3)
@@ -56,20 +57,22 @@ for league in leagues:
     team_ft = ['gfh', 'gah', 'n_h', 'gfa', 'gaa', 'n_a', 'm_pt']
     n_ft = len(team_ft)
     Team_ft = np.zeros((n_date, n_team, n_ft))
-    Match_ft = np.zeros((len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED)) + 30))
+    Match_ft = np.zeros(
+        (len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED)) + 30))
 
     prev_seas = dfl.season[0]
     k = 0
     for i in range(len(dfl)):
         date = dates.index(dfl.date[i])
-        print("features for day ", dfl.date[i])
+        print("features for day ", dfl.date[i], ", league:", league)
         home_team = teams.index(dfl.home_team_api_id[i])
         away_team = teams.index(dfl.away_team_api_id[i])
         cur_seas = dfl.season[i]
         if cur_seas != prev_seas:
             k = 0
         if k < len(np.unique(dfl.loc[dfl.season == dfl.season[0], 'home_team_api_id'])) / 2:
-            Team_ft[date:, home_team, :] = 0  # Ça devrait fonctionner a priori ?
+            # Ça devrait fonctionner a priori ?
+            Team_ft[date:, home_team, :] = 0
             # Les 10 premiers matchs de la saison correspondent forcément à la 1re journée de L1
             Team_ft[date:, away_team, :] = 0
             k = k + 1
@@ -116,9 +119,12 @@ for league in leagues:
             # Match_ft[i, 2 * n_ft:] = BM[i, ...].reshape(1, -1)
 
         #  Add players features (33 per player, thus 5+28*10 if MEANED=False else 33) to the list
-        player_list_id = dfl.loc[i, 'home_player_1':'away_player_11'].as_matrix()
-        ht_feat = get_team_feat(player_list_id[:11], pd.Series(dfl.date[i]), MEANED)
-        at_feat = get_team_feat(player_list_id[11:], pd.Series(dfl.date[i]), MEANED)
+        player_list_id = dfl.loc[i,
+                                 'home_player_1':'away_player_11'].as_matrix()
+        ht_feat = get_team_feat(
+            player_list_id[:11], pd.Series(dfl.date[i]), MEANED)
+        at_feat = get_team_feat(
+            player_list_id[11:], pd.Series(dfl.date[i]), MEANED)
         Match_ft[i, 2 * n_ft:2 * n_ft + 5 + 28 * (10 - 9 * MEANED)] = ht_feat
         Match_ft[i, 2 * n_ft + 5 + 28 * (10 - 9 * MEANED):2 *
                  (n_ft + 5 + 28 * (10 - 9 * MEANED))] = at_feat
@@ -129,6 +135,7 @@ for league in leagues:
         Match_ft[i, -30:] = bm.reshape(1, -1)
 
     M_ft[str(league)] = Match_ft
+    del dfl
 
 pkl.dump(M_ft, open('M_ft.p', 'wb'))
 pkl.dump(Score, open('Score.p', 'wb'))
