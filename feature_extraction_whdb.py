@@ -79,8 +79,7 @@ def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True
         seasons = np.unique(dfl.season)
 
         Team_ft = np.zeros((len(dates), len(teams), n_ft))
-        Match_ft = np.zeros(
-            (len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED)) + 30))
+        Match_ft = np.zeros((len(dfl), 2 * (n_ft + 5 + 28 * (10 - 9 * MEANED)) + 30))
 
         prev_seas = dfl.season[0]
         k = 0
@@ -106,8 +105,8 @@ def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True
             prev_seas = cur_seas
 
             # Team Features update
-            htg = df.home_team_goal[i]
-            atg = df.away_team_goal[i]
+            htg = dfl.home_team_goal[i]
+            atg = dfl.away_team_goal[i]
             dtg = htg - atg
             pts = diff_to_pt(dtg)
             Team_ft = team_features_update(Team_ft, date, home_team, htg, atg, pts, erase, True)
@@ -116,7 +115,6 @@ def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True
             # Match ft. filling
             Match_ft[i, :n_ft] = Team_ft[date - 1, home_team, :]
             Match_ft[i, n_ft:2 * n_ft] = Team_ft[date - 1, away_team, :]
-            # Match_ft[i, 2 * n_ft:] = BM[i, ...].reshape(1, -1)
 
             #  Add players features (33 per player: 5GK + 28 field) to the list
             player_list_id = dfl.loc[i,
