@@ -13,8 +13,8 @@ from players_features import get_team_feat
 con = lite.connect('database.sqlite')
 df = pd.read_sql_query('select * from match', con)
 League = df.league_id
-leagues = np.unique(League.as_matrix())
-n_league = len(leagues)
+Leagues = np.unique(League.as_matrix())
+n_league = len(Leagues)
 dfleague = df.groupby('league_id')
 
 MEANED = False
@@ -37,12 +37,21 @@ def id_ft(ft):
     return team_ft.index(ft)
 
 
-def team_features_update(Team_ft, date, Tid, htg, atg, pts, HOME):
+def team_features_update(Team_ft, date, Tid, Goals, erase, HOME):
+    htg, atg, pts = Goals
     per = slice(date, date + 100)
     if erase:
         Team_ft[per, Tid, :] = 0
-    for ft in team_ft:
-        globals()[ft] = Team_ft[date, Tid, id_ft(ft)]
+    # for ft in team_ft:
+    #     globals()[ft] = Team_ft[date, Tid, id_ft(ft)]
+    n_h = Team_ft[date, Tid, id_ft('n_h')]
+    gfh = Team_ft[date, Tid, id_ft('gfh')]
+    gfa = Team_ft[date, Tid, id_ft('gfa')]
+    gaa = Team_ft[date, Tid, id_ft('gaa')]
+    gah = Team_ft[date, Tid, id_ft('gah')]
+    n_a = Team_ft[date, Tid, id_ft('n_a')]
+    m_pt = Team_ft[date, Tid, id_ft('m_pt')]
+
     if HOME:
         n_h += 1
         Team_ft[per, Tid, id_ft('n_h')] = n_h
@@ -62,7 +71,7 @@ Score = {}
 M_ft = {}
 
 
-def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True):
+def extract_match_features(leagues=Leagues, MEANED=False, dyn_length=20, Book=True):
     for league in leagues:
         dfl = dfleague.get_group(league)
         dfl.sort_values(by='date', inplace=True)
@@ -109,8 +118,8 @@ def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True
             atg = dfl.away_team_goal[i]
             dtg = htg - atg
             pts = diff_to_pt(dtg)
-            Team_ft = team_features_update(Team_ft, date, home_team, htg, atg, pts, erase, True)
-            Team_ft = team_features_update(Team_ft, date, away_team, htg, atg, pts, erase, False)
+            Team_ft = team_features_update(Team_ft, date, home_team, [htg, atg, pts], erase, True)
+            Team_ft = team_features_update(Team_ft, date, away_team, [htg, atg, pts], erase, False)
 
             # Match ft. filling
             Match_ft[i, :n_ft] = Team_ft[date - 1, home_team, :]
@@ -133,6 +142,7 @@ def extract_match_features(leagues='all', MEANED=False, dyn_length=20, Book=True
     return M_ft, Score
 
 
+M_ft, Score = extract_match_features()
 pkl.dump(M_ft, open('M_ft.p', 'wb'))
 pkl.dump(Score, open('Score.p', 'wb'))
 # np.save('Score.npy', Score)
