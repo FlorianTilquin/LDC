@@ -70,8 +70,8 @@ X_test = mf[u[n_train:], :]
 #  plt.show()
 
 clf = PCA(n_components=25)
-# classif = RFC(n_estimators=500, n_jobs=-1, class_weight='balanced')
-classif = ADA()
+classif = RFC(n_estimators=500, n_jobs=-1, class_weight='balanced')
+# classif = ADA()
 
 S = []
 Confusion = []

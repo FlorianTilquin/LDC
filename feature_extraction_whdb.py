@@ -4,6 +4,7 @@
 
 import pickle as pkl
 import sqlite3 as lite
+from time import time as ti
 
 import numpy as np
 
@@ -18,6 +19,8 @@ n_league = len(Leagues)
 dfleague = df.groupby('league_id')
 
 MEANED = False
+
+corresp = pkl.load(open('corresp.pkl', 'rb'))
 
 
 def mean_up(ex, n_m, goals):
@@ -103,6 +106,7 @@ def extract_match_features(leagues=Leagues, MEANED=False, dyn_length=20, Book=Tr
             Match_ft[i, -30:] = bm.reshape(1, -1)
 
             print("features for day ", dfl.date[i], ", league:", league)
+            a = ti()
             home_team = teams.index(dfl.home_team_api_id[i])
             away_team = teams.index(dfl.away_team_api_id[i])
             cur_seas = dfl.season[i]
@@ -120,6 +124,12 @@ def extract_match_features(leagues=Leagues, MEANED=False, dyn_length=20, Book=Tr
             pts = diff_to_pt(dtg)
             Team_ft = team_features_update(Team_ft, date, home_team, [htg, atg, pts], erase, True)
             Team_ft = team_features_update(Team_ft, date, away_team, [htg, atg, pts], erase, False)
+            #  TODO FEATURES DYNAMIQUE TODO
+            # Home_story = dfl.loc[((dfl.home_team_api_id == home_team) |
+            #                       (dfl.away_team_api_id == home_team)) & (dfl.date < dfl.date[i])]
+            # gfh_story # là il faut metre à part les matchs où l'équipe était à domicile
+            # Away_story = dfl.loc[((dfl.home_team_api_id == away_team) |
+            #                       (dfl.away_team_api_id == away_team)) & (dfl.date < dfl.date[i])]
 
             # Match ft. filling
             Match_ft[i, :n_ft] = Team_ft[date - 1, home_team, :]
@@ -129,23 +139,18 @@ def extract_match_features(leagues=Leagues, MEANED=False, dyn_length=20, Book=Tr
             player_list_id = dfl.loc[i,
                                      'home_player_1':'away_player_11'].as_matrix()
             ht_feat = get_team_feat(
-                player_list_id[:11], pd.Series(dfl.date[i]), MEANED)
+                player_list_id[:11], pd.Series(dfl.date[i]), corresp, MEANED)
             at_feat = get_team_feat(
-                player_list_id[11:], pd.Series(dfl.date[i]), MEANED)
+                player_list_id[11:], pd.Series(dfl.date[i]), corresp, MEANED)
             Match_ft[i, 2 * n_ft:2 * n_ft + 5 + 28 * (10 - 9 * MEANED)] = ht_feat
             Match_ft[i, 2 * n_ft + 5 + 28 * (10 - 9 * MEANED):2 *
                      (n_ft + 5 + 28 * (10 - 9 * MEANED))] = at_feat
 
         M_ft[str(league)] = Match_ft
-        del dfl
 
     return M_ft, Score
 
 
 M_ft, Score = extract_match_features()
-pkl.dump(M_ft, open('M_ft.p', 'wb'))
-pkl.dump(Score, open('Score.p', 'wb'))
-# np.save('Score.npy', Score)
-# np.save('Team_features.npy', Team_ft)
-# print(Match_ft.shape)
-# np.save('Match_features.npy', Match_ft)
+# pkl.dump(M_ft, open('M_ft.p', 'wb'))
+# pkl.dump(Score, open('Score.p', 'wb'))
