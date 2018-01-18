@@ -109,7 +109,7 @@ mat_mean_attributes = mean_attributes.as_matrix()
 
 # ### 3.1 Match features
 
-# In[344]:
+# In[351]:
 
 
 """
@@ -119,7 +119,9 @@ returns the last 'n_matchs' matchs of team 'team_id' anterior to 'date'
 
 location can be 'home', 'away' or None (which means indifferent here)
 """
-def last_matchs(df, team_id, date, n_matchs, location = None):
+def last_matchs(match_df, team_id, date, n_matchs, location = None):
+    df = match_df.copy()
+    
     if location == 'home':
         df = df[df['home_team_api_id']==team_id]
     if location == 'away':
@@ -131,7 +133,7 @@ def last_matchs(df, team_id, date, n_matchs, location = None):
     #df.sort_values(by='date', ascending=False, inplace=True)
     df.reset_index(inplace=True)
 
-    n_matchs = min(n_matchs, len(dum_df)) - 1
+    n_matchs = min(n_matchs, len(df)) - 1
     
     return df.loc[0:n_matchs]
 
@@ -140,20 +142,18 @@ def last_matchs(df, team_id, date, n_matchs, location = None):
 
 # dum
 
-# In[345]:
+# In[352]:
 
 
 def match_features(df):
-    df = df.loc[:, 'home_team_goal':'away_team_goal']
-    
-    return df.as_matrix().reshape(-1)
+    return (df.loc[:, 'home_team_goal':'away_team_goal']).as_matrix().reshape(-1)
 
 
 # match_features(dum)
 
 # ### 3.2 Team features
 
-# In[346]:
+# In[353]:
 
 
 """
@@ -161,7 +161,8 @@ assumes that the table of players attributes is sorted in decreasing order
 
 returns the most recent attributes for player 'player_id' up to date 'date'.
 """
-def player_features(df, player_id, date):    
+def player_features(attributes, player_id, date):
+    df = attributes.copy()
     df = df[df['player_api_id']==player_id]
     
     df = df[df['date'] <= date]
@@ -232,7 +233,7 @@ def BM_features(row):
 
 # ### 3.4 Concatenation
 
-# In[349]:
+# In[354]:
 
 
 def all_features(df_matchs, df_players, n_matchs):
@@ -287,7 +288,7 @@ def all_features(df_matchs, df_players, n_matchs):
     return features, ground_truth
 
 
-# In[336]:
+# In[350]:
 
 
 feat, GT = all_features(df, player_attributes, 10)
