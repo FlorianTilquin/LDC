@@ -33,7 +33,7 @@ get_ipython().magic('matplotlib inline')
 # 
 # complement available at: https://www.kaggle.com/jiezi2004/soccer
 
-# In[338]:
+# In[390]:
 
 
 con = lite.connect('database.sqlite')
@@ -41,23 +41,9 @@ df = pd.read_sql_query('select * from match', con)
 players = pd.read_sql_query('select * from player_Attributes', con)
 
 
-# In[339]:
-
-
-df.sort_values(by='date', inplace=True, ascending=False)
-players.sort_values(by='date', inplace=True, ascending=False)
-
-
-# In[340]:
-
-
-df.reset_index(inplace=True)
-players.reset_index(inplace=True)
-
-
 # ## 2. Modifying the tables to take usable values
 
-# In[358]:
+# In[391]:
 
 
 """
@@ -84,33 +70,27 @@ def map_attributes(attributes):
     return df
 
 
-# In[341]:
-
-
-player_attributes = map_attributes(players)
-
-
-# player_attributes.head()
-
-# In[342]:
-
-
-mean_attributes = player_attributes.loc[:, 'overall_rating':].mean()
-
-
-# mean_attributes
-
-# In[343]:
-
-
-mat_mean_attributes = mean_attributes.as_matrix()
-
-
 # ## 3. Extracting desired features
 
 # ### 3.1 Match features
 
-# In[359]:
+# In[392]:
+
+
+"""
+returns a dictionnary with teams as keys and df as values containing all the matches played by the key team at 'location'
+"""
+def matchs_by_team(df, location = 'home'):
+    res = {}
+    teams = df[location+'_team_api_id'].unique()
+    
+    for team in teams:
+        res[team] = df[df[location+'_team_api_id']==team]
+        
+    return res
+
+
+# In[405]:
 
 
 """
@@ -120,40 +100,39 @@ returns the last 'n_matchs' matchs of team 'team_id' anterior to 'date'
 
 location can be 'home', 'away' or None (which means indifferent here)
 """
-def last_matchs(df, team_id, date, n_matchs, location = None):
+def last_matchs(df, date, n_matchs):
     
-    if location == 'home':
-        dum_df = df[df['home_team_api_id']==team_id]
-    if location == 'away':
-        dum_df = df[df['away_team_api_id']==team_id]
-    else:
-        dum_df = pd.concat([df[df['home_team_api_id']==team_id],df[df['away_team_api_id']==team_id]])
-    
-    dum_df = dum_df[dum_df['date'] < date]
-    #df.sort_values(by='date', ascending=False, inplace=True)
-    dum_df.reset_index(inplace=True)
+    dum_df = df[df['date'] < date]
+    dum_df.reset_index(inplace=True, drop=True)
 
     n_matchs = min(n_matchs, len(dum_df)) - 1
     
     return dum_df.loc[0:n_matchs]
 
 
-# dum = last_matchs(df, 9987, '2017-12-30', 5, 'away')
-
-# dum
-
-# In[352]:
+# In[394]:
 
 
 def match_features(df):
     return (df.loc[:, 'home_team_goal':'away_team_goal']).as_matrix().reshape(-1)
 
 
-# match_features(dum)
-
 # ### 3.2 Team features
 
-# In[360]:
+# In[395]:
+
+
+def attributes_by_player(attributes):
+    res = {}
+    players = attributes['player_api_id'].unique()
+    
+    for player in players:
+        res[player] = attributes[attributes['player_api_id']==player]
+    
+    return res
+
+
+# In[401]:
 
 
 """
@@ -161,12 +140,10 @@ assumes that the table of players attributes is sorted in decreasing order
 
 returns the most recent attributes for player 'player_id' up to date 'date'.
 """
-def player_features(attributes, player_id, date):
-    df = attributes[attributes['player_api_id']==player_id]
+def player_features(player_attributes, date, mat_mean_attributes):
     
-    df = df[df['date'] <= date]
-    #df.sort_values(by='date', ascending=False, inplace=True)
-    df.reset_index(inplace=True)
+    df = player_attributes[player_attributes['date'] <= date]
+    df.reset_index(inplace=True, drop=True)
     
     if 0 in df.index:
         res = df.loc[0,'overall_rating':].as_matrix()
@@ -178,16 +155,14 @@ def player_features(attributes, player_id, date):
     return res
 
 
-# player_features(player_attributes, 505942, '2017-01-01')
-
-# In[347]:
+# In[397]:
 
 
 """
 Y donne la position de but (1) à rond central (11)
 X donne la position de gauche (1) à droite (9)
 """
-def team_features(df_row, attributes, location = 'home'):
+def team_features(df_row, attributes, mat_mean_attributes, location = 'home'):
         date = df_row['date']
         ids = df_row[location+'_player_1':location+'_player_11'].as_matrix()
         X = df_row[location+'_player_X1':location+'_player_X11'].as_matrix()
@@ -199,16 +174,17 @@ def team_features(df_row, attributes, location = 'home'):
         res = []
         for i, val in positions:
             player = val[0]
-            res += list(player_features(attributes, player, date))
+            if player in attributes:
+                res += list(player_features(attributes[player], date, mat_mean_attributes))
+            else:
+                res += list(mat_mean_attributes)
             
         return res
 
 
-# team_features(df.loc[0], player_attributes)
-
 # ### 3.3 Bookmakers features
 
-# In[348]:
+# In[398]:
 
 
 def avg_val(s):
@@ -228,14 +204,25 @@ def BM_features(row):
     return bm.reshape(-1)
 
 
-# BM_features(df.loc[0])
-
 # ### 3.4 Concatenation
 
-# In[361]:
+# In[403]:
 
 
-def all_features(df_matchs, df_players, n_matchs):
+def all_features(df_matchs, df_players, n_matchs):  
+    df_matchs.sort_values(by='date', inplace=True, ascending=False)
+    df_players.sort_values(by='date', inplace=True, ascending=False)
+    
+    df_matchs.reset_index(inplace=True, drop=True)
+    df_players.reset_index(inplace=True, drop=True)
+    
+    home_matchs_by_team = matchs_by_team(df, location = 'home')
+    away_matchs_by_team = matchs_by_team(df, location = 'away')
+    
+    df_players = map_attributes(df_players)
+    att_by_player = attributes_by_player(df_players)
+    mat_mean_attribute = (df_players.loc[:, 'overall_rating':].mean()).as_matrix()
+    
     features = []
     ground_truth = []
     
@@ -253,10 +240,10 @@ def all_features(df_matchs, df_players, n_matchs):
         date = row['date']
         
         #matchs features
-        home_team_last_matchs_home = match_features(last_matchs(df, home_team_id, date, n_matchs, location = 'home'))
-        home_team_last_matchs_away = match_features(last_matchs(df, home_team_id, date, n_matchs, location = 'away'))
-        away_team_last_matchs_home = match_features(last_matchs(df, away_team_id, date, n_matchs, location = 'home'))
-        away_team_last_matchs_away = match_features(last_matchs(df, away_team_id, date, n_matchs, location = 'away'))
+        home_team_last_matchs_home = match_features(last_matchs(home_matchs_by_team[home_team_id], date, n_matchs))
+        home_team_last_matchs_away = match_features(last_matchs(away_matchs_by_team[home_team_id], date, n_matchs))
+        away_team_last_matchs_home = match_features(last_matchs(home_matchs_by_team[away_team_id], date, n_matchs))
+        away_team_last_matchs_away = match_features(last_matchs(away_matchs_by_team[away_team_id], date, n_matchs))
         
         matchs_feat = np.zeros(4 * 2 * n_matchs)
         
@@ -266,13 +253,10 @@ def all_features(df_matchs, df_players, n_matchs):
         matchs_feat[6 * n_matchs : 6 * n_matchs+len(away_team_last_matchs_away)] += away_team_last_matchs_away
         
         #team features
-        home_team_feat = team_features(row, df_players, location = 'home')
-        away_team_feat = team_features(row, df_players, location = 'away')
+        home_team_feat = team_features(row, att_by_player, mat_mean_attributes, location = 'home')
+        away_team_feat = team_features(row, att_by_player, mat_mean_attributes, location = 'away')
         
         team_feat = np.array(home_team_feat + away_team_feat)
-        
-        if np.count_nonzero(np.isnan(team_feat)) > 0:
-            return team_feat
         
         #bookmakers features
         bm_feat = BM_features(row)
