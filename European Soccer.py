@@ -33,7 +33,7 @@ get_ipython().magic('matplotlib inline')
 # 
 # complement available at: https://www.kaggle.com/jiezi2004/soccer
 
-# In[390]:
+# In[407]:
 
 
 con = lite.connect('database.sqlite')
@@ -271,10 +271,10 @@ def all_features(df_matchs, df_players, n_matchs):
     return features, ground_truth
 
 
-# In[ ]:
+# In[406]:
 
 
-feat, GT = all_features(df, player_attributes, 10)
+feat, GT = all_features(df, players, 10)
 
 
 # In[210]:
