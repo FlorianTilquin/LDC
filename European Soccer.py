@@ -57,7 +57,7 @@ players.reset_index(inplace=True)
 
 # ## 2. Modifying the tables to take usable values
 
-# In[313]:
+# In[358]:
 
 
 """
@@ -67,7 +67,8 @@ the attribute 'preffered_foot' is mapped to [1., 0.] or [0., 1.]
 
 values 'low', 'medium' and 'high' are mapped to 0., 0.5 and 1.
 """
-def map_attributes(df):
+def map_attributes(attributes):
+    df = attributes.copy()
     df['other_foot'] = df['preferred_foot'].copy()
     
     val1 = df.loc[:, 'preferred_foot'].map(lambda x: 100. - 100. * (x == 'left'))
@@ -109,7 +110,7 @@ mat_mean_attributes = mean_attributes.as_matrix()
 
 # ### 3.1 Match features
 
-# In[351]:
+# In[359]:
 
 
 """
@@ -119,23 +120,22 @@ returns the last 'n_matchs' matchs of team 'team_id' anterior to 'date'
 
 location can be 'home', 'away' or None (which means indifferent here)
 """
-def last_matchs(match_df, team_id, date, n_matchs, location = None):
-    df = match_df.copy()
+def last_matchs(df, team_id, date, n_matchs, location = None):
     
     if location == 'home':
-        df = df[df['home_team_api_id']==team_id]
+        dum_df = df[df['home_team_api_id']==team_id]
     if location == 'away':
-        df = df[df['away_team_api_id']==team_id]
+        dum_df = df[df['away_team_api_id']==team_id]
     else:
-        df = pd.concat([df[df['home_team_api_id']==team_id],df[df['away_team_api_id']==team_id]])
+        dum_df = pd.concat([df[df['home_team_api_id']==team_id],df[df['away_team_api_id']==team_id]])
     
-    df = df[df['date'] < date]
+    dum_df = dum_df[dum_df['date'] < date]
     #df.sort_values(by='date', ascending=False, inplace=True)
-    df.reset_index(inplace=True)
+    dum_df.reset_index(inplace=True)
 
-    n_matchs = min(n_matchs, len(df)) - 1
+    n_matchs = min(n_matchs, len(dum_df)) - 1
     
-    return df.loc[0:n_matchs]
+    return dum_df.loc[0:n_matchs]
 
 
 # dum = last_matchs(df, 9987, '2017-12-30', 5, 'away')
@@ -153,7 +153,7 @@ def match_features(df):
 
 # ### 3.2 Team features
 
-# In[353]:
+# In[360]:
 
 
 """
@@ -162,8 +162,7 @@ assumes that the table of players attributes is sorted in decreasing order
 returns the most recent attributes for player 'player_id' up to date 'date'.
 """
 def player_features(attributes, player_id, date):
-    df = attributes.copy()
-    df = df[df['player_api_id']==player_id]
+    df = attributes[attributes['player_api_id']==player_id]
     
     df = df[df['date'] <= date]
     #df.sort_values(by='date', ascending=False, inplace=True)
@@ -233,7 +232,7 @@ def BM_features(row):
 
 # ### 3.4 Concatenation
 
-# In[354]:
+# In[361]:
 
 
 def all_features(df_matchs, df_players, n_matchs):
@@ -288,7 +287,7 @@ def all_features(df_matchs, df_players, n_matchs):
     return features, ground_truth
 
 
-# In[350]:
+# In[ ]:
 
 
 feat, GT = all_features(df, player_attributes, 10)
