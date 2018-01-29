@@ -1,4 +1,4 @@
-
+#! /usr/bin/env python3
 # coding: utf-8
 
 # # European Soccer
@@ -26,7 +26,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 
 import matplotlib.pyplot as plt
-get_ipython().magic('matplotlib inline')
+# get_ipython().magic('matplotlib inline')
 
 
 # ## 1. Extracting Data
@@ -214,7 +214,7 @@ def BM_features(row):
 # In[403]:
 
 
-def all_features(df_matchs, df_players, n_matchs):
+def all_features(df_matchs, df_players, n_matchs, n_spectral):
     df_matchs.sort_values(by='date', inplace=True, ascending=False)
     df_players.sort_values(by='date', inplace=True, ascending=False)
 
@@ -226,7 +226,7 @@ def all_features(df_matchs, df_players, n_matchs):
 
     df_players = map_attributes(df_players)
     att_by_player = attributes_by_player(df_players)
-    mat_mean_attribute = (df_players.loc[:, 'overall_rating':].mean()).as_matrix()
+    mat_mean_attributes = (df_players.loc[:, 'overall_rating':].mean()).as_matrix()
 
     features = []
     ground_truth = []
@@ -250,20 +250,21 @@ def all_features(df_matchs, df_players, n_matchs):
 
         #Power Ranking features
         lid = row.league_id
-        if  not in league_list :
+        if lid not in league_matrices :
             league = df.loc[df.league_id==lid]
             n_team = len(np.unique(league.home_team_api_id))
             league_matrices[str(lid)] = np.zeros((n_team,)*2)
-            league_team_id[str(lid)] = np.unique(league.home_team_api_id)
+            league_team_ids[str(lid)] = np.unique(league.home_team_api_id)
+            prf_feat = np.zeros(2 * n_spectral)
         else :
             M = league_matrices[str(lid)] #Passage par ref ici,
-            E = league_team_id[str(lid)]
+            E = league_team_ids[str(lid)]
             i = np.where(E==home_team_id)[0][0]
             j = np.where(E==away_team_id)[0][0]
             M[i,j] +=  row['home_team_goal']
             M[j,i] +=  row['away_team_goal']
-        prf_feat = get_power_ranking_features(M)
-        prf_feat = prf_feat[[i,j],:]
+            prf_feat = power_ranking_features(M,n_spectral)
+            prf_feat = prf_feat[[i,j],:]
 
         #matchs features
         home_team_last_matchs_home = match_features(last_matchs(home_matchs_by_team[home_team_id], date, n_matchs))
@@ -300,7 +301,7 @@ def all_features(df_matchs, df_players, n_matchs):
 # In[406]:
 
 
-feat, GT = all_features(df, players, 10)
+feat, GT = all_features(df, players, 10, 5)
 
 
 # In[210]:
@@ -312,11 +313,11 @@ import pickle
 # In[272]:
 
 
-pickle.dump(feat, open('new_features.p', 'wb'))
+pickle.dump(feat, open('new_new_features.p', 'wb'))
 
 
 # In[215]:
 
 
-pickle.dump(GT, open('ground_truth.p', 'wb'))
+# pickle.dump(GT, open('ground_truth.p', 'wb'))
 
