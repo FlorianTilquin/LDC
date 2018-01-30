@@ -14,7 +14,8 @@ import sqlite3 as lite
 
 from sklearn.preprocessing import normalize
 from sklearn.manifold import spectral_embedding as SE
-
+from diffusion_maps import diffusion_maps as DM
+from spectral_features import rearrange_spectrum
 
 # In[101]:
 
@@ -75,7 +76,7 @@ def map_attributes(attributes):
 
 # ### 3.0 Power ranking features
 def power_ranking_features(M , n_feat=5):
-    pwr = SE(M,n_feat)
+    pwr = DM(M,n_feat)[0]
     return pwr
 
 # ### 3.1 Match features
@@ -168,23 +169,23 @@ Y donne la position de but (1) à rond central (11)
 X donne la position de gauche (1) à droite (9)
 """
 def team_features(df_row, attributes, mat_mean_attributes, location = 'home'):
-        date = df_row['date']
-        ids = df_row[location+'_player_1':location+'_player_11'].as_matrix()
-        X = df_row[location+'_player_X1':location+'_player_X11'].as_matrix()
-        Y = df_row[location+'_player_Y1':location+'_player_Y11'].as_matrix()
+    date = df_row['date']
+    ids = df_row[location+'_player_1':location+'_player_11'].as_matrix()
+    X = df_row[location+'_player_X1':location+'_player_X11'].as_matrix()
+    Y = df_row[location+'_player_Y1':location+'_player_Y11'].as_matrix()
 
-        positions = {i : (ids[i],X[i],Y[i]) for i in range(11)}
-        positions = sorted(positions.items(), key=lambda x: (x[1][2], x[1][1]))
+    positions = {i : (ids[i],X[i],Y[i]) for i in range(11)}
+    positions = sorted(positions.items(), key=lambda x: (x[1][2], x[1][1]))
 
-        res = []
-        for i, val in positions:
-            player = val[0]
-            if player in attributes:
-                res += list(player_features(attributes[player], date, mat_mean_attributes))
-            else:
-                res += list(mat_mean_attributes)
+    res = []
+    for i, val in positions:
+        player = val[0]
+        if player in attributes:
+            res += list(player_features(attributes[player], date, mat_mean_attributes))
+        else:
+            res += list(mat_mean_attributes)
 
-        return res
+    return res
 
 
 # ### 3.3 Bookmakers features
@@ -233,6 +234,7 @@ def all_features(df_matchs, df_players, n_matchs, n_spectral):
 
     league_matrices = {}
     league_team_ids = {}
+    old_league_prf = {}
 
     for row in df_matchs.iterrows():
         i = row[0]
@@ -250,21 +252,24 @@ def all_features(df_matchs, df_players, n_matchs, n_spectral):
 
         #Power Ranking features
         lid = row.league_id
-        if lid not in league_matrices :
+        if str(lid) not in league_matrices :
             league = df.loc[df.league_id==lid]
             n_team = len(np.unique(league.home_team_api_id))
             league_matrices[str(lid)] = np.zeros((n_team,)*2)
             league_team_ids[str(lid)] = np.unique(league.home_team_api_id)
-            prf_feat = np.zeros(2 * n_spectral)
+            prf = np.zeros(2 * n_spectral)
+            old_league_prf[str(lid)] = np.zeros((n_team,n_spectral))
         else :
-            M = league_matrices[str(lid)] #Passage par ref ici,
+            M = league_matrices[str(lid)] #Passage par ref ici, j'aime pas trop ça, mais bon...
             E = league_team_ids[str(lid)]
             i = np.where(E==home_team_id)[0][0]
             j = np.where(E==away_team_id)[0][0]
             M[i,j] +=  row['home_team_goal']
             M[j,i] +=  row['away_team_goal']
-            prf_feat = power_ranking_features(M,n_spectral)
-            prf_feat = prf_feat[[i,j],:]
+            prf = power_ranking_features(M,n_spectral)
+            prf = rearrange_spectrum(old_league_prf[str(lid)],prf)
+            old_league_prf[str(lid)] = prf
+            prf = prf[[i,j],:].ravel()
 
         #matchs features
         home_team_last_matchs_home = match_features(last_matchs(home_matchs_by_team[home_team_id], date, n_matchs))
@@ -289,7 +294,7 @@ def all_features(df_matchs, df_players, n_matchs, n_spectral):
         bm_feat = BM_features(row)
 
         #concatenation
-        all_feat = np.concatenate((matchs_feat, team_feat, bm_feat, prf_feat))
+        all_feat = np.concatenate((matchs_feat, team_feat, bm_feat, prf))
         gt = 1 + np.sign(row['home_team_goal'] - row['away_team_goal'])
 
         features.append(all_feat)
